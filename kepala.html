@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Arsip Bapenda DKI - Sistem Manajemen Kearsipan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --theme-blue: #0033A0; 
+            --theme-blue-dark: #001f60; 
+            --theme-gold: #FFD700;
+            --theme-white: #ffffff; 
+            --theme-gray: #f4f7f9; 
+            --theme-border: #e2e8f0;
+            --sidebar-width: 280px; 
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--theme-gray); color: #333; height: 100vh; overflow: hidden; }
+
+        #main-app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+        
+        /* =========================================
+           SIDEBAR (DIKEMBALIKAN KE AWAL)
+           ========================================= */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            min-width: var(--sidebar-width); 
+            flex-shrink: 0; 
+            background: var(--theme-blue); 
+            color: var(--theme-white); 
+            display: flex; 
+            flex-direction: column; 
+            border-right: 5px solid var(--theme-gold); 
+            height: 100%; 
+            transition: var(--transition);
+            z-index: 1000;
+        }
+        .sidebar-header { 
+            padding: 35px 20px; 
+            text-align: center; 
+            background: rgba(0,0,0,0.2); 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+        }
+        .sidebar-header h1 { font-size: 20px; letter-spacing: 2px; font-weight: 800; margin-top: 12px; }
+        .sidebar-header span { color: var(--theme-gold); }
+
+        .nav-list { list-style: none; padding: 25px 0; flex-grow: 1; overflow-y: auto; }
+        .nav-item { 
+            padding: 16px 25px; 
+            cursor: pointer; 
+            color: rgba(255,255,255,0.7); 
+            display: flex; 
+            align-items: center; 
+            gap: 18px; 
+            transition: var(--transition); 
+            border-left: 6px solid transparent; 
+            font-size: 15px; 
+            font-weight: 600; 
+        }
+        .nav-item:hover { background: rgba(255, 215, 0, 0.1); color: var(--theme-white); border-left: 6px solid var(--theme-gold); }
+        .nav-item.active { background: var(--theme-gold); color: var(--theme-blue); font-weight: 800; border-left: 6px solid var(--theme-white); }
+
+        .btn-logout { 
+            background: transparent; 
+            border: 2px solid var(--theme-gold); 
+            color: var(--theme-gold); 
+            padding: 12px 20px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            width: 90%; 
+            margin: 0 auto; 
+            font-weight: 800; 
+            transition: var(--transition); 
+            text-transform: uppercase; 
+            font-size: 13px; 
+        }
+        .btn-logout:hover { background: var(--theme-gold); color: var(--theme-blue); }
+
+        /* =========================================
+           VIEW CONTAINER & TOP BAR
+           ========================================= */
+        .view-container { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; position: relative; }
+        .top-bar { 
+            background: var(--theme-white); 
+            padding: 18px 35px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--theme-border); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+            flex-shrink: 0; 
+        }
+        
+        .user-profile { display: flex; align-items: center; gap: 15px; }
+        .avatar-box { 
+            width: 40px; height: 40px; 
+            background: #1e3a8a; color: white; 
+            border-radius: 8px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: 800; font-size: 14px; 
+        }
+
+        .content-area { padding: 30px; overflow-y: auto; flex-grow: 1; background: #fdfdfd; }
+        .page-view { display: none; animation: fadeIn 0.4s ease; }
+        .page-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* =========================================
+           DASHBOARD STYLES (GAMBAR 1)
+           ========================================= */
+        .db-grid-top { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; margin-bottom: 25px; }
+        .db-grid-mid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 25px; }
+        
+        .banner-main { 
+            height: 200px; border-radius: 20px; color: white; padding: 40px;
+            background: linear-gradient(rgba(0, 51, 160, 0.7), rgba(0, 51, 160, 0.7)), url('https://images.unsplash.com/photo-1555899434-94d1368aa7af?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover; background-position: center; display: flex; flex-direction: column; justify-content: center;
+        }
+
+        .card { background: white; border-radius: 20px; padding: 25px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
+        .card-blue { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; }
+        
+        .stat-val-big { font-size: 48px; font-weight: 800; color: #1e3a8a; line-height: 1; display: block; margin: 10px 0; }
+        .progress-line { width: 100%; height: 8px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { height: 100%; background: #3b82f6; width: 25%; }
+
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .menu-item-card { 
+            background: white; border: 1px solid #f1f5f9; border-radius: 15px; padding: 20px; 
+            display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s;
+        }
+        .menu-item-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .menu-icon-circle { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+        /* =========================================
+           PENCARIAN STYLES (GAMBAR 2)
+           ========================================= */
+        .search-layout { display: grid; grid-template-columns: 300px 1fr; gap: 25px; }
+        .profile-banner-vertical { 
+            background: linear-gradient(rgba(0, 51, 160, 0.8), rgba(0, 51, 160, 0.9)), url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2069&auto=format&fit=crop');
+            background-size: cover; border-radius: 25px; padding: 40px 30px; color: white; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .total-doc-box { 
+            background: rgba(0,0,0,0.3); border-radius: 20px; padding: 30px; text-align: center; 
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); 
+        }
+
+        .archive-list-container { background: white; border-radius: 25px; padding: 30px; }
+        .doc-entry { border: 1px solid #f1f5f9; border-radius: 15px; padding: 20px; margin-bottom: 15px; position: relative; }
+        .pdf-tag { position: absolute; top: 20px; right: 20px; color: #ef4444; font-size: 24px; }
+        .btn-row { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+
+        /* =========================================
+           BANNER KECIL (STATUS SISTEM)
+           ========================================= */
+        .banner-mini {
+            width: 100%; height: 100px; border-radius: 15px; margin-bottom: 25px;
+            background: linear-gradient(rgba(20, 20, 20, 0.8), rgba(20, 20, 20, 0.8)), url('https://images.unsplash.com/photo-1555899434-94d1368aa7af?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 30px; color: white;
+        }
+        .status-tag { 
+            background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 50px; 
+            font-size: 11px; font-weight: 700; border: 1px solid rgba(255,255,255,0.2);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dot-blue { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; box-shadow: 0 0 8px #3b82f6; }
+
+        /* =========================================
+           TABLES & COMMON UI
+           ========================================= */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
+        th { text-align: left; padding: 15px; color: #94a3b8; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+        td { padding: 15px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+        
+        .badge { padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-red { background: #fee2e2; color: #ef4444; }
+        .badge-yellow { background: #fefce8; color: #854d0e; }
+        
+        .btn-primary { background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px; }
+        .btn-dark { background: #1e293b; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 12px; }
+        
+        .search-box { width: 100%; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; outline: none; }
+        .fav-star { color: #fbbf24; font-size: 20px; cursor: pointer; }
+
+        /* =========================================
+           HAMBURGER MENU & RESPONSIVE ADDITIONS
+           ========================================= */
+        .menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #1e293b;
+            margin-right: 15px;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        /* MEDIA QUERIES */
+        @media (max-width: 1024px) {
+            .db-grid-top { grid-template-columns: 1fr 1fr; }
+            .db-grid-mid { grid-template-columns: 1fr; }
+            .search-layout { grid-template-columns: 1fr; }
+            .profile-banner-vertical { height: auto; gap: 20px; }
+        }
+
+        @media (max-width: 850px) {
+            .menu-btn { display: block; }
+            .sidebar {
+                position: fixed;
+                left: -280px;
+                top: 0;
+                bottom: 0;
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .sidebar-overlay.active {
+                display: block;
+            }
+            .top-bar { padding: 15px 20px; }
+        }
+
+        @media (max-width: 600px) {
+            .db-grid-top { grid-template-columns: 1fr; }
+            .banner-main { padding: 25px; height: auto; min-height: 150px; }
+            .stat-val-big { font-size: 36px; }
+            .menu-grid { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .banner-mini { flex-direction: column; height: auto; padding: 20px; gap: 15px; text-align: center; }
+            .banner-mini div { flex-direction: column; }
+            .top-bar { flex-direction: row; }
+            .avatar-box { width: 35px; height: 35px; font-size: 12px; }
+            .user-profile div div { font-size: 12px !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-app">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Coat_of_arms_of_Jakarta.svg/500px-Coat_of_arms_of_Jakarta.svg.png" alt="Logo DKI" style="width: 50px;">
+                <h1>E-ARSIP <span>DKI</span></h1>
+            </div>
+            <ul class="nav-list">
+                <li class="nav-item active" onclick="switchView('dashboard', this)">🏠 Dashboard</li>
+                <li class="nav-item" onclick="switchView('pencarian', this)">🔍 Pencarian Dokumen</li>
+                <li class="nav-item" onclick="switchView('favorit', this)">⭐ Favorit Dokumen</li>
+                <li class="nav-item" onclick="switchView('persetujuan', this)">✅ Persetujuan Akses</li>
+                <li class="nav-item" onclick="switchView('log', this)">⏱️ Log Aktivitas</li>
+            </ul>
+            <div style="padding-bottom: 30px; text-align: center;">
+                <button class="btn-logout">Keluar Sistem</button>
+            </div>
+        </aside>
+
+        <div class="view-container">
+            <header class="top-bar">
+                <div style="display: flex; align-items: center;">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <div id="page-title" style="font-weight: 800; color: #1e293b; font-size: 18px;">Dashboard</div>
+                </div>
+                <div class="user-profile">
+                    <div class="avatar-box">KB</div>
+                    <div style="text-align: left;">
+                        <div style="font-size: 14px; font-weight: 800;">Kaban Bapenda <span style="font-size: 10px; color: #94a3b8;">▼</span></div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-area">
+                
+                <div id="view-dashboard" class="page-view active">
+                    <div class="db-grid-top">
+                        <div class="banner-main">
+                            <h2 style="font-size: 26px; font-weight: 800; margin-bottom: 12px;">Selamat Sore, Kaban Bapenda 👋</h2>
+                            <div style="background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 12px; width: fit-content; border: 1px solid rgba(255,255,255,0.3);">
+                                📅 <span style="font-size: 13px; font-weight: 600;">23 April 2026 | 16:05:24 WIB</span>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <small style="color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Statistik</small>
+                            <div style="margin-top: 15px; font-size: 14px; font-weight: 600;">Total Arsip Digital</div>
+                            <span class="stat-val-big">8</span>
+                            <small style="color: #ef4444; font-weight: 600;">Total dokumen dari seluruh bidang</small>
+                        </div>
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <small style="font-weight: 700; color: #64748b;">📦 PENYIMPANAN</small>
+                                <span class="badge badge-green">● OK</span>
+                            </div>
+                            <div style="font-size: 28px; font-weight: 800; margin: 15px 0;">250 <span style="font-size: 14px; color: #94a3b8; font-weight: 400;">/ 1000 GB</span></div>
+                            <div class="progress-line"><div class="progress-fill"></div></div>
+                            <div style="display:flex; justify-content:space-between; font-size: 11px; font-weight: 700;">
+                                <span style="color: #3b82f6;">25% Terpakai</span>
+                                <span style="color: #94a3b8;">Tersisa 750 GB</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="db-grid-mid">
+                        <div class="card card-blue" style="display:flex; flex-direction:column; justify-content:space-between;">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="font-weight: 800;">Persetujuan Akses</h3>
+                                    <span style="background: #22c55e; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 800;">3</span>
+                                </div>
+                                <p style="font-size: 12px; margin-top: 15px; opacity: 0.9; line-height: 1.6;">Terdapat 3 permintaan akses yang menunggu konfirmasi Anda. Tinjau dokumen untuk memberikan izin.</p>
+                            </div>
+                            <button style="margin-top:20px; padding:12px; background:rgba(255,255,255,0.2); border:none; color:white; border-radius:10px; font-weight:700; text-align:left; cursor:pointer;" onclick="switchView('persetujuan')">Buka Persetujuan →</button>
+                        </div>
+                        <div class="menu-grid">
+                            <div class="menu-item-card" onclick="switchView('pencarian')">
+                                <div class="menu-icon-circle" style="background:#fff7ed; color:#f97316;">🔍</div>
+                                <div><h4 style="font-size:14px; font-weight:700;">Pencarian Dokumen</h4><p style="font-size:11px; color:#94a3b8;">Cari dokumen dengan kata kunci atau metadata.</p></div>
+                            </div>
+                            <div class="menu-item-card" onclick="switchView('favorit')">
+                                <div class="menu-icon-circle" style="background:#fff1f2; color:#f43f5e;">⭐</div>
+                                <div><h4 style="font-size:14px; font-weight:700;">Dokumen Favorit</h4><p style="font-size:11px; color:#94a3b8;">Akses cepat dokumen yang sering Anda gunakan.</p></div>
+                            </div>
+                            <div class="menu-item-card" onclick="switchView('persetujuan')">
+                                <div class="menu-icon-circle" style="background:#f0fdf4; color:#22c55e;">🛡️</div>
+                                <div><h4 style="font-size:14px; font-weight:700;">Persetujuan Akses</h4><p style="font-size:11px; color:#94a3b8;">Berikan atau tolak hak akses kepada pengguna.</p></div>
+                            </div>
+                            <div class="menu-item-card" onclick="switchView('log')">
+                                <div class="menu-icon-circle" style="background:#f5f3ff; color:#8b5cf6;">📈</div>
+                                <div><h4 style="font-size:14px; font-weight:700;">Log Aktivitas</h4><p style="font-size:11px; color:#94a3b8;">Tinjau histori aktivitas pengguna dalam sistem.</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card table-responsive">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                            <h3 style="font-size: 16px; font-weight: 800; border-left: 4px solid #0033A0; padding-left: 15px;">Aktivitas Terbaru</h3>
+                            <span style="color: #3b82f6; font-size: 12px; font-weight: 700; cursor:pointer;">Lihat Semua</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr><th>USER</th><th>AKTIVITAS</th><th>KATEGORI</th><th>WAKTU</th><th>STATUS</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>budisantoso</strong></td>
+                                    <td>Meminta akses dokumen: undangan_rapat_pembahasan</td>
+                                    <td><span class="badge" style="background:#f1f5f9;">Persetujuan Akses</span></td>
+                                    <td>13 Apr 2026, 16.59</td>
+                                    <td><span class="badge badge-green">sukses</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-pencarian" class="page-view">
+                    <div class="search-layout">
+                        <div class="profile-banner-vertical">
+                            <div>
+                                <h2 style="font-size: 32px;">Selamat Sore, Kaban! 👋</h2>
+                                <p>Efisiensi kerja dimulai dari sini. Temukan dokumen Anda dalam hitungan detik.</p>
+                            </div>
+                            <div class="total-doc-box">
+                                <span style="font-size:10px; opacity:0.6; letter-spacing:1px;">TOTAL DOKUMEN</span>
+                                <h3 style="font-size: 48px; font-weight: 800; margin: 5px 0;">8</h3>
+                                <div style="font-size: 10px; font-weight: 700; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; margin-top: 10px;">ARSIP DIGITAL</div>
+                            </div>
+                        </div>
+                        <div class="archive-list-container">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:25px;">
+                                <h4 style="font-size:18px;">Dokumen Arsip ✨</h4>
+                                <small style="color:#94a3b8; font-weight:700;">8 DOKUMEN TERSEDIA</small>
+                            </div>
+
+                            <div class="doc-entry">
+                                <div class="pdf-tag">📄</div>
+                                <div style="font-weight: 800; font-size: 16px; margin-bottom: 10px;">undangan_rapat_pembahasan</div>
+                                <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap: 20px; font-size: 11px; color: #64748b;">
+                                    <div><strong>NO. SURAT</strong><br>-</div>
+                                    <div><strong>TAHUN | NO. ARSIP</strong><br>2026 | 2026620770</div>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="btn-primary">Buka Dokumen</button>
+                                    <span class="badge badge-red">Umum</span>
+                                    <button class="btn-dark">Unduh</button>
+                                    <span class="fav-star" style="margin-left:auto;">☆</span>
+                                </div>
+                            </div>
+
+                            <div class="doc-entry">
+                                <div class="pdf-tag">📄</div>
+                                <div style="font-weight: 800; font-size: 16px; margin-bottom: 10px;">undangan_rapat_pembahasan</div>
+                                <div style="display:grid; grid-template-columns: 1fr 1.5fr; gap: 20px; font-size: 11px; color: #64748b;">
+                                    <div><strong>NO. SURAT</strong><br>-</div>
+                                    <div><strong>TAHUN | NO. ARSIP</strong><br>2026 | 2026B15950</div>
+                                </div>
+                                <div class="btn-row">
+                                    <button class="btn-primary">Buka Dokumen</button>
+                                    <span class="badge badge-yellow">Terbatas</span>
+                                    <button class="btn-dark">Unduh</button>
+                                    <span class="fav-star" style="margin-left:auto; color:#fbbf24;">★</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-favorit" class="page-view">
+                    <div class="banner-mini">
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <div style="font-size: 30px;">⭐</div>
+                            <div><h2 style="font-size: 18px; font-weight: 800;">Koleksi Favorit</h2><p style="font-size:12px; opacity:0.7;">Akses cepat dokumen-dokumen penting Anda.</p></div>
+                        </div>
+                        <div class="status-tag"><div class="dot-blue"></div> STATUS SISTEM: TERPROTEKSI</div>
+                    </div>
+                    <input type="text" class="search-box" placeholder="Cari dokumen favorit Anda...">
+                    <div class="doc-entry" style="background:white;">
+                        <div class="pdf-tag">📄</div>
+                        <div style="font-weight: 800; font-size: 16px; margin-bottom: 5px;">arsip_test</div>
+                        <span class="badge badge-green" style="display:inline-block; margin-bottom:15px;">Umum</span>
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 15px;">NO. ARSIP 2026208529 | TAHUN 2026 | NO. SURAT -</div>
+                        <div class="btn-row">
+                            <button class="btn-primary">👁️ BUKA DOKUMEN</button>
+                            <button class="btn-dark">⬇️ UNDUH PDF</button>
+                            <span class="fav-star" style="margin-left:auto; font-size:24px;">★</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-persetujuan" class="page-view">
+                    <div class="banner-mini" style="background: linear-gradient(rgba(30, 58, 138, 0.9), rgba(30, 58, 138, 0.9)), url('https://images.unsplash.com/photo-1555899434-94d1368aa7af?q=80&w=2070&auto=format&fit=crop');">
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <div style="font-size: 30px;">🛡️</div>
+                            <div><h2 style="font-size: 18px; font-weight: 800;">Persetujuan Akses</h2><p style="font-size:12px; opacity:0.7;">Kelola izin akses dokumen sistem kearsipan.</p></div>
+                        </div>
+                        <div class="status-tag"><div class="dot-blue"></div> STATUS: MONITORING</div>
+                    </div>
+                    <div class="card table-responsive" style="padding:0; overflow:hidden;">
+                        <table>
+                            <thead style="background:#f8fafc;">
+                                <tr><th>TANGGAL</th><th>PEMOHON</th><th>DOKUMEN</th><th>KEPERLUAN</th><th>TINGKAT</th><th>AKSI</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>13 Apr 2026</td>
+                                    <td><strong>budisantoso</strong></td>
+                                    <td style="color:#2563eb; font-weight:700;">undangan_rapat_pe...</td>
+                                    <td>disuruh kaban</td>
+                                    <td><span class="badge badge-green">Umum</span></td>
+                                    <td>
+                                        <button style="background:#dcfce7; color:#166534; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">✓</button>
+                                        <button style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; margin-left:5px;">✕</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="view-log" class="page-view">
+                    <div class="banner-mini" style="background: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), url('https://images.unsplash.com/photo-1555899434-94d1368aa7af?q=80&w=2070&auto=format&fit=crop');">
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <div style="font-size: 30px;">📈</div>
+                            <div><h2 style="font-size: 18px; font-weight: 800;">Log Aktivitas</h2><p style="font-size:12px; opacity:0.7;">Jejak audit digital seluruh pengguna sistem.</p></div>
+                        </div>
+                    </div>
+                    <div class="card table-responsive" style="padding:0; overflow:hidden;">
+                        <table>
+                            <thead style="background:#f8fafc;">
+                                <tr><th>NO.</th><th>WAKTU</th><th>PENGGUNA</th><th>KATEGORI</th><th>AKTIVITAS</th><th>STATUS</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>13/04/2026, 16.59 WIB</td>
+                                    <td><strong>BUDISANTOSO</strong><br><small style="color:#94a3b8">Sistem Lokal</small></td>
+                                    <td><span class="badge" style="background:#f1f5f9;">PERSETUJUAN AKSES</span></td>
+                                    <td>Meminta akses dokumen: undangan_rapat_pembahasan</td>
+                                    <td><span class="badge-status" style="color:#15803d; font-weight:700;">● SUKSES</span></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>13/04/2026, 16.57 WIB</td>
+                                    <td><strong>BUDISANTOSO</strong><br><small style="color:#94a3b8">Sistem Lokal</small></td>
+                                    <td><span class="badge" style="background:#f1f5f9;">SISTEM</span></td>
+                                    <td>Mengunduh dokumen: arsip_test</td>
+                                    <td><span class="badge-status" style="color:#15803d; font-weight:700;">● SUKSES</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        function switchView(viewId, element) {
+            // Sembunyikan semua page-view
+            document.querySelectorAll('.page-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Tampilkan page-view yang dipilih
+            document.getElementById('view-' + viewId).classList.add('active');
+
+            // Update Header Title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'pencarian': 'Pencarian Dokumen',
+                'favorit': 'Dokumen Favorit',
+                'persetujuan': 'Persetujuan Akses',
+                'log': 'Log Aktivitas'
+            };
+            document.getElementById('page-title').innerText = titles[viewId];
+
+            // Update Nav Sidebar Active State
+            if(element) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                element.classList.add('active');
+            }
+
+            // Close sidebar on mobile after selection
+            if(window.innerWidth <= 850) {
+                toggleSidebar();
+            }
+        }
+    </script>
+</body>
+</html>
