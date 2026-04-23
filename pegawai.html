@@ -657,6 +657,12 @@
                 alert("Proses OCR Berhasil! Data metadata telah terisi.");
             }, 2500);
         }
+
+         document.querySelector('.btn-logout').onclick = function() {
+            if(confirm('Apakah Anda yakin ingin keluar?')) {
+                window.location.href = 'index.html';
+            }
+        };
     </script>
 </body>
 </html>
